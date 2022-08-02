@@ -34,13 +34,16 @@ class GraphQLmap(object):
         self.args = args_graphql
         self.url = args_graphql.url
         self.method = args_graphql.method
-        self.headers = None if not args_graphql.headers else json.loads(args_graphql.headers)
-        self.use_json = True if args_graphql.use_json else False
+        self.headers = (
+            json.loads(args_graphql.headers) if args_graphql.headers else None
+        )
+
+        self.use_json = bool(args_graphql.use_json)
 
         while True:
             query = input("GraphQLmap > ")
             cmdlist.append(query)
-            if query == "exit" or query == "q":
+            if query in ["exit", "q"]:
                 exit()
 
             elif query == "help":

